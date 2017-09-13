@@ -3,7 +3,7 @@ Convert video frame from RGB to YU12
 Homework of digital media technology course in PKU Shenzhen
 
 # Requirements
-opencv3.3.0 https://github.com/opencv/opencv.git
+opencv>=3.1.0 https://github.com/opencv/opencv.git
 
 ## Recommand Install Methods(for Ubuntu 16.04 LTS)
 1. Install Anaconda https://docs.anaconda.com/anaconda/install/
