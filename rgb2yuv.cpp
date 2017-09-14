@@ -1,7 +1,7 @@
 #include <cstdio>
 #include <cstdint>
 #include "opencv2/opencv.hpp"
-#include "opencv2/core.hpp"
+//#include "opencv2/core.hpp"
 
 using namespace std;
 
@@ -13,16 +13,20 @@ inline float clamp(float val) {
     return val <= 255 ? (val >= 0 ? val : 0) : 255;
 }
 
-void rgb2yuv(cv::Mat& image, uint8_t* y_plane, uint8_t* u_plane, uint8_t* v_plane) {
-    for (int i = 0; i < WIDTH; i++) {
-        for (int j = 0; j < HEIGHT; j++) {
+void rgb2yuv(cv::Mat& image, uint8_t* buffer) {
+    uint8_t* y_plane = buffer;
+    uint8_t* v_plane = buffer + WIDTH * HEIGHT;
+    uint8_t* u_plane = buffer + WIDTH * HEIGHT * 5 / 4;
+
+    for (int i = 0; i < HEIGHT; i++) {
+        for (int j = 0; j < WIDTH; j++) {
             cv::Vec3b rgb(image.at<cv::Vec3b>(i, j));
             *y_plane++ = uint8_t(0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2]);
             if (j % 2 == 0) {
                 if (i % 2 == 0)
-                    *u_plane++ = uint8_t(clamp(-0.169 * rgb[0] + -0.331 * rgb[1] + 0.500 * rgb[2] + 128));
+                    *v_plane++ = uint8_t(clamp(0.500 * rgb[0] + -0.419 * rgb[1] + -0.081 * rgb[2] + 128));
                 else
-                    *v_plane++ = uint8_t(clamp(0.500 * rgb[0] + -0.419 * rgb[1] + 0.081 * rgb[2] + 128));
+                    *u_plane++ = uint8_t(clamp(-0.169 * rgb[0] + -0.331 * rgb[1] + 0.500 * rgb[2] + 128));
             }
         }
     }
@@ -55,12 +59,9 @@ int main(int argc, char** argv) {
     cv::Mat image(HEIGHT, WIDTH, CV_8UC3);
 
     int frame_num = cap.get(CV_CAP_PROP_FRAME_COUNT);
-    int buf_size = floor(frame_num * AIM_FPS / fps) + 10;
-   
-    uint8_t *y_plane = new uint8_t[WIDTH * HEIGHT * buf_size]; 
-    uint8_t *u_plane = new uint8_t[WIDTH * HEIGHT * (buf_size>>2)]; 
-    uint8_t *v_plane = new uint8_t[WIDTH * HEIGHT * (buf_size>>2)]; 
-    long p_num = 0;
+    long buf_size = (WIDTH * HEIGHT * frame_num * AIM_FPS / fps + 10) * 3 / 2;
+    long buf_len = 0;
+    uint8_t *buffer = new uint8_t[buf_size]; 
 
     int cur_idx = 0;
     int cur_sec = 0;
@@ -77,8 +78,8 @@ int main(int argc, char** argv) {
         cap.retrieve(frame);
         cv::resize(frame, image, cv::Size(WIDTH, HEIGHT), cv::INTER_CUBIC);
 
-        rgb2yuv(image, y_plane + p_num, u_plane + (p_num>>2), v_plane + (p_num>>2));
-        p_num += WIDTH * HEIGHT;
+        rgb2yuv(image, buffer + buf_len);
+        buf_len += WIDTH * HEIGHT * 3 / 2;
 
         cur_idx++;
         if (cur_idx % AIM_FPS == 0) {
@@ -94,9 +95,7 @@ int main(int argc, char** argv) {
         printf("Cannot write the yuv!");
         return 0;
     }
-    fwrite(y_plane, sizeof(uint8_t), p_num, fp);
-    fwrite(u_plane, sizeof(uint8_t), p_num>>2, fp);
-    fwrite(v_plane, sizeof(uint8_t), p_num>>2, fp);
+    fwrite(buffer, sizeof(uint8_t), buf_len, fp);
     fclose(fp);
 
     return 0;
