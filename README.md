@@ -17,4 +17,4 @@ opencv>=3.1.0 https://github.com/opencv/opencv.git
 2. ./rgb2yuv video_file
 
 # Comments
-The yuv format is set as YU12. If you want others, it is to hack the code. 
+The yuv format is set as YV12. If you want others, it is to hack the code. 
