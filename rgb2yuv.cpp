@@ -59,7 +59,9 @@ int main(int argc, char** argv) {
     cv::Mat image(HEIGHT, WIDTH, CV_8UC3);
 
     int frame_num = cap.get(CV_CAP_PROP_FRAME_COUNT);
-    long buf_size = (WIDTH * HEIGHT * frame_num * AIM_FPS / fps + 10) * 3 / 2;
+    int aim_frame_num = frame_num * AIM_FPS / fps + 10;
+    long buf_size = (WIDTH * HEIGHT * aim_frame_num) * 3 / 2;
+    //long buf_size = 100000000;
     long buf_len = 0;
     uint8_t *buffer = new uint8_t[buf_size]; 
 
@@ -89,13 +91,17 @@ int main(int argc, char** argv) {
     }
 
     cap.release();
+    frame.release();
+    image.release();
 
     FILE *fp = fopen("result.yuv", "wb");
     if (fp == NULL) {
+        fclose(fp);
         printf("Cannot write the yuv!");
-        return 0;
+        return -4;
     }
     fwrite(buffer, sizeof(uint8_t), buf_len, fp);
+    delete [] buffer;
     fclose(fp);
 
     return 0;
